@@ -67,18 +67,19 @@ class PlayerPlane(games.Sprite):
             else:
                 self.count_shoot += 1
                 
-                
+        self.check_collide()
             
             
     def shoot(self):
-        bullet_player = Bullet(self.x, self.y - 50)          #Создание пули игрока
+        bullet_player = Bullet(self.x, self.y - 70)          #Создание пули игрока
         games.screen.add(bullet_player)
         
 
     def check_collide(self):
-            for bullet_enemy in self.overlapping_sprites:    #Проверка на столкновение со спрайтами
-                plane.die()
-                bullet_enemy.die()
+            for sprite in self.overlapping_sprites:
+                if isinstance(sprite, Bullet):#Проверка на столкновение со спрайтами
+                    self.die()
+                    sprite.die()
                 
     def die(self):
         
@@ -96,9 +97,9 @@ class PlayerPlane(games.Sprite):
             self.heathbar2.destroy()
             games.screen.add(self.heathbar1)
         elif self.hp == 0:
+            EnemyPlane.stop_bullet = 0
             self.heathbar1.destroy()
             games.screen.add(self.heathbar0)            
-            EnemyPlane.hop = 0   
             end_message = games.Message(value='Вы проиграли',
                                     size=90,
                                     color=color.white,
@@ -144,10 +145,12 @@ class Bullet(games.Sprite):
             self.destroy()
         
     def check_collide(self):
-            for sprite in self.overlapping_sprites:         #Проверка столкновения пули со спрайтом
-                self.destroy()
-                sprite.die()
-                
+        
+            for sprite in self.overlapping_sprites:
+                if isinstance(sprite, Bullet):
+                    self.destroy()
+                    sprite.die()
+                    
     def die(self):
         self.destroy()
 
@@ -216,40 +219,49 @@ class EnemyPlane(games.Sprite):
     count = 0
     count_str = str(count)
     g = 1
-    r = 1
-    hop = 1
+    stop_bullet = 1
     level = 1
     
-    def __init__(self, x, p):
-        if p == 1:
+    def __init__(self, x, hp, counter_plane, sp):
+        if counter_plane == 1:
             super().__init__(image=EnemyPlane.image1,
                                  angle = 180,
                                  x = x,
                                  y = random.randint(50, 180)),
-
+            self.hp = hp     
+            self.heathbar1 = Heathbar(self.x, self.y, 10)
+            self.heathbar2 = Heathbar(self.x, self.y, 20)
+            self.count_shoot = 0
+            self.count_heathbar1 = 0
+            self.count_heathbar2 = 0
+            self.sp = sp
+            self.xx = 250
+                            
         else:
             super().__init__(image=EnemyPlane.image2,
                                  angle = 180,
                                  x = x,
                                  y = 150),
-        self.hp = 3      
-        self.heathbar1 = Heathbar(self.x, self.y, 10)
-        self.heathbar2 = Heathbar(self.x, self.y, 20)
-        self.count_shoot = 0
-        self.count_heathbar1 = 0
-        self.count_heathbar2 = 0
-        self.x1 = 0
-        
+            self.hp = hp     
+            self.heathbar1 = Heathbar(self.x, self.y, 10)
+            self.heathbar2 = Heathbar(self.x, self.y, 20)
+            self.count_shoot = 0
+            self.count_heathbar1 = 0
+            self.count_heathbar2 = 0
+            self.x1 = 0
+            self.sp = sp
+                    
             
             
         
     def update(self):
+
         EnemyPlane.count_str = str(EnemyPlane.count)
         if games.keyboard.is_pressed(games.K_p) > 0:
             self.level_2()
         
                 
-        if EnemyPlane.hop != 0:
+        if EnemyPlane.stop_bullet != 0:
             if self.count_shoot > random.randint(60, 130): #Задержка выстрела и сам выстрел
                 self.shoot()
                 self.count_shoot = 0
@@ -262,6 +274,7 @@ class EnemyPlane(games.Sprite):
                 self.heathbar1.destroy()
             else:
                 self.count_heathbar1 += 1
+                
                 
                 
         if self.hp == 1:
@@ -277,16 +290,16 @@ class EnemyPlane(games.Sprite):
 
             
     def check_collide(self):
-         
             for sprite in self.overlapping_sprites:
                 if isinstance(sprite, Bullet): #Проверка на столкновение со спрайтом
                     sprite.die()
                     self.die()
+                    
                 
 
                     
     def shoot(self):
-            bullet_enemy = Bullet(self.x, self.y + 80, 10, 180)     #Создание вражеской пули
+            bullet_enemy = Bullet(self.x, self.y + self.sp, 10, 180)     #Создание вражеской пули
             games.screen.add(bullet_enemy)
             
             
@@ -309,33 +322,36 @@ class EnemyPlane(games.Sprite):
             EnemyPlane.count_str = str(EnemyPlane.count)
 
             self.heathbar2.destroy()
+            death_effect = Explosion(self.x, self.y)
+            games.screen.add(death_effect)
+            
 
-            if EnemyPlane.count == 5:
-                EnemyPlane.level += 1
+            if EnemyPlane.count == 1:
+  
                 end_message = games.Message(value='Уровень 2',
                                     size=90,
-                                    color=color.white,
+                                    color=color.yellow,
                                     x=games.screen.width/2,
                                     y=games.screen.height/2,
                                     lifetime=5*games.screen.fps,
-##                                    after_death=games.screen.quit,
                                     is_collideable=False)
                 games.screen.add(end_message)
-##                games.screen.background
+
                 
-                
-            death_effect = Explosion(self.x, self.y)
-            games.screen.add(death_effect)
+                if EnemyPlane.g == 1:
+                    
+                    for i in range(3):
+                        space_image = games.load_image('space1.jpg')
+                        games.screen.background = space_image
+                        
+                        enemy = EnemyPlane(self.xx, 5, 2, 150)
+                        games.screen.add(enemy)
+                        self.xx += 200
+                        EnemyPlane.g += 1
+
+                        
             self.destroy()
-            
-    def level_2(self): 
-        self.hp = 0
-        for i in range(1):
-                    enemy = EnemyPlane(200, 2)
-                    self.hp = 3
-                    self.x1 += 200
-                    games.screen.add(enemy)
-        
+                           
         
 
 class Text(games.Message):
@@ -393,27 +409,15 @@ def main():
 ##      games.music.play(-1)
         
         x = 250
-        for i in range(5):
-            enemy = EnemyPlane(x, 1)
+        for i in range(1):
+            enemy = EnemyPlane(x, 3, 1, 80)
             games.screen.add(enemy)
             x += 100
             
         games.screen.mainloop()
 
-# поехали!
 if __name__ == "__main__":
     main()
 
-##    games.music.load("musicgame.mid") #сделать чтобы при выходе выключалась и жизнь игрока и полоска жизни у врага
-##    games.music.play(-1)
 
-
-##plane = PlayerPlane()
-##games.screen.add(plane)
-
-
-
-
-
-
-#Сделать уровни сложности
+#Заметки: Сделать уровни сложности
